@@ -43,11 +43,12 @@ class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareIn
             throw new HttpResponse('Notification is invalid. Code 1', 400);
         }
 
-        if (!$this->api->checkResponseHash($httpRequest->request)) {
+        if (!$this->api->checkResponseHash($httpRequest->request, $model['currency'])) {
             throw new HttpResponse('Notification is invalid. Code 2', 400);
         }
 
-        if ($model['amount'] != $httpRequest->request['amount']) {
+        // We check payment_status because in case of error (999), 2C2P can sometimes omit the amount in its response
+        if (Api::STATUS_ERROR !== $httpRequest->request['payment_status'] && $model['amount'] != $httpRequest->request['amount']) {
             throw new HttpResponse('Notification is invalid. Code 3', 400);
         }
 

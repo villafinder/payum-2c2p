@@ -154,46 +154,47 @@ class Api
     }
 
     /**
-     * @param  array $params
+     * @param  array  $params
+     * @param  string $currency Some responses from 2C2P do not include currency, we are then using the one from model
      * @return bool
      */
-    public function checkResponseHash(array $params)
+    public function checkResponseHash(array $params, $currency)
     {
         $toHash =
             $params['version'].
             $params['request_timestamp'].
             $params['merchant_id'].
             $params['order_id'].
-            $params['invoice_no'].
-            $params['currency'].
+            $this->emptyOr('invoice_no', $params).
+            $this->emptyOr('currency', $params).
             $params['amount'].
-            $params['transaction_ref'].
-            $params['approval_code'].
-            $params['eci'].
+            $this->emptyOr('transaction_ref', $params).
+            $this->emptyOr('approval_code', $params).
+            $this->emptyOr('eci', $params).
             $params['transaction_datetime'].
             $params['payment_channel'].
             $params['payment_status'].
-            $params['channel_response_code'].
-            $params['channel_response_desc'].
-            $params['masked_pan'].
-            $params['stored_card_unique_id'].
-            $params['backend_invoice'].
-            $params['paid_channel'].
-            $params['paid_agent'].
-            $params['recurring_unique_id'].
-            $params['user_defined_1'].
-            $params['user_defined_2'].
-            $params['user_defined_3'].
-            $params['user_defined_4'].
-            $params['user_defined_5'].
+            $this->emptyOr('channel_response_code', $params).
+            $this->emptyOr('channel_response_desc', $params).
+            $this->emptyOr('masked_pan', $params).
+            $this->emptyOr('stored_card_unique_id', $params).
+            $this->emptyOr('backend_invoice', $params).
+            $this->emptyOr('paid_channel', $params).
+            $this->emptyOr('paid_agent', $params).
+            $this->emptyOr('recurring_unique_id', $params).
+            $this->emptyOr('user_defined_1', $params).
+            $this->emptyOr('user_defined_2', $params).
+            $this->emptyOr('user_defined_3', $params).
+            $this->emptyOr('user_defined_4', $params).
+            $this->emptyOr('user_defined_5', $params).
             $params['browser_info'].
-            $params['ippPeriod'].
-            $params['ippInterestType'].
-            $params['ippInterestRate'].
-            $params['ippMerchantAbsorbRate']
+            $this->emptyOr('ippPeriod', $params).
+            $this->emptyOr('ippInterestType', $params).
+            $this->emptyOr('ippInterestRate', $params).
+            $this->emptyOr('ippMerchantAbsorbRate', $params)
         ;
 
-        return $params['hash_value'] === $this->calculateHash($toHash, $params['currency']);
+        return $params['hash_value'] === $this->calculateHash($toHash, $params['currency'] ?: $currency);
     }
 
     /**
@@ -275,5 +276,14 @@ class Api
     private function calculateHash($toHash, $currencyNumeric)
     {
         return strtoupper(hash_hmac('sha1', $toHash, $this->getMerchantAuthKeyForCurrency($currencyNumeric), false));
+    }
+
+    private function emptyOr(string $index, array $array)
+    {
+        if (!array_key_exists($index, $array)) {
+            return '';
+        }
+
+        return $array[$index];
     }
 }
