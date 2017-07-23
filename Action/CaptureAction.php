@@ -6,10 +6,11 @@ use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
+use Payum\Core\Exception\LogicException;
 use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
-use Payum\Core\Reply\Base;
 use Payum\Core\Reply\HttpPostRedirect;
+use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\Capture;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\GetHttpRequest;
@@ -54,8 +55,11 @@ class CaptureAction implements ActionInterface, ApiAwareInterface, GatewayAwareI
                 try {
                     $notify = new Notify($model);
                     $this->gateway->execute($notify);
-                } catch (Base $e) {
-                    // NotifyAction throws a request we don't want to use here, we just skip
+                } catch (HttpResponse $e) {
+                    // Only non-HTTP200 responses are interesting here
+                    if (200 !== $e->getStatusCode()) {
+                        throw new LogicException($e->getContent(), $e->getStatusCode(), $e);
+                    }
                 }
             }
 
