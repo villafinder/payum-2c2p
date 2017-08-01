@@ -22,7 +22,7 @@ use Villafinder\Payum2c2p\Api;
 /**
  * @property Api $api
  */
-class CaptureAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface
+class CaptureAction extends AbstractCheckRequestAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
@@ -50,17 +50,14 @@ class CaptureAction implements ActionInterface, ApiAwareInterface, GatewayAwareI
 
         // We are back from 2c2p
         if (isset($httpRequest->request['payment_status'])) {
+            // Model has already been updated by Notify, nothing more to do here
+            if (isset($model['payment_status'])) {
+                return;
+            }
+
             // Only if we trust user request, we can handle the request
             if ($this->api->trustUserRequest()) {
-                try {
-                    $notify = new Notify($model);
-                    $this->gateway->execute($notify);
-                } catch (HttpResponse $e) {
-                    // Only non-HTTP200 responses are interesting here
-                    if (200 !== $e->getStatusCode()) {
-                        throw new LogicException($e->getContent(), $e->getStatusCode(), $e);
-                    }
-                }
+                $this->updateModelFromRequest($model, $httpRequest);
             }
 
             return;

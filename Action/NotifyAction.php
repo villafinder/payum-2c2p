@@ -6,6 +6,7 @@ use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
+use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
@@ -17,7 +18,7 @@ use Villafinder\Payum2c2p\Api;
 /**
  * @property Api $api
  */
-class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
+class NotifyAction extends AbstractCheckRequestAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
@@ -36,23 +37,17 @@ class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareIn
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
-        $httpRequest = new GetHttpRequest();
-        $this->gateway->execute($httpRequest);
+        // If model has already been updated by Capture, nothing more to do here
+        if (!isset($model['payment_status'])) {
+            $httpRequest = new GetHttpRequest();
+            $this->gateway->execute($httpRequest);
 
-        if ('POST' !== $httpRequest->method) {
-            throw new HttpResponse('Notification is invalid. Code 1', 400);
+            try {
+                $this->updateModelFromRequest($model, $httpRequest);
+            } catch (LogicException $e) {
+                throw new HttpResponse($e->getMessage(), 400);
+            }
         }
-
-        if (!$this->api->checkResponseHash($httpRequest->request, $model['currency'])) {
-            throw new HttpResponse('Notification is invalid. Code 2', 400);
-        }
-
-        // We check payment_status because in case of error (999), 2C2P can sometimes omit the amount in its response
-        if (Api::STATUS_ERROR !== $httpRequest->request['payment_status'] && $model['amount'] != $httpRequest->request['amount']) {
-            throw new HttpResponse('Notification is invalid. Code 3', 400);
-        }
-
-        $model->replace($httpRequest->request);
 
         throw new HttpResponse('OK', 200);
     }
