@@ -6,10 +6,15 @@ use Payum\Core\Action\ActionInterface;
 use Payum\Core\Request\GetStatusInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Villafinder\Payum2c2p\Api;
 
 class StatusAction implements ActionInterface
 {
+    const STATUS_SUCCESS  = '000';
+    const STATUS_PENDING  = '001';
+    const STATUS_REJECTED = '002';
+    const STATUS_CANCEL   = '003';
+    const STATUS_ERROR    = '999';
+
     /**
      * @param GetStatusInterface $request
      */
@@ -21,13 +26,13 @@ class StatusAction implements ActionInterface
 
         if (!isset($model['payment_status'])) {
             $request->markNew();
-        } elseif (Api::STATUS_SUCCESS === $model['payment_status']) {
+        } elseif (self::STATUS_SUCCESS === $model['payment_status']) {
             $request->markCaptured();
-        } elseif (Api::STATUS_PENDING === $model['payment_status']) {
+        } elseif (self::STATUS_PENDING === $model['payment_status']) {
             $request->markPending();
-        } elseif (Api::STATUS_CANCEL === $model['payment_status']) {
+        } elseif (self::STATUS_CANCEL === $model['payment_status']) {
             $request->markCanceled();
-        } elseif (Api::STATUS_REJECTED === $model['payment_status']) {
+        } elseif (self::STATUS_REJECTED === $model['payment_status']) {
             $request->markFailed();
         } else {
             $request->markUnknown();

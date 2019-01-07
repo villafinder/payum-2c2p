@@ -13,12 +13,6 @@ class Api
 {
     const VERSION = '6.9';
 
-    const STATUS_SUCCESS  = '000';
-    const STATUS_PENDING  = '001';
-    const STATUS_REJECTED = '002';
-    const STATUS_CANCEL   = '003';
-    const STATUS_ERROR    = '999';
-
     /**
      * @var HttpClientInterface
      */

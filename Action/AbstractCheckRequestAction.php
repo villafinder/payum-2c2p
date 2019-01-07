@@ -20,7 +20,7 @@ abstract class AbstractCheckRequestAction
         }
 
         // We check payment_status because in case of error (999), 2C2P can sometimes omit the amount in its response
-        if (Api::STATUS_ERROR !== $httpRequest->request['payment_status'] && $model['amount'] != $httpRequest->request['amount']) {
+        if (StatusAction::STATUS_ERROR !== $httpRequest->request['payment_status'] && $model['amount'] != $httpRequest->request['amount']) {
             throw new LogicException('Request is invalid. Code 3');
         }
 
