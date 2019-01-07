@@ -16,6 +16,10 @@
     "require-dev": {
         "php-http/guzzle6-adapter": "^1.0"
     },
+    "suggest": {
+        "ext-openssl": "*",
+        "ext-simplexml": "*"
+    },
     "config": {
         "bin-dir": "bin"
     },
