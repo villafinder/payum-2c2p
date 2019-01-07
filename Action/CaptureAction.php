@@ -22,11 +22,12 @@ use Villafinder\Payum2c2p\Api;
 /**
  * @property Api $api
  */
-class CaptureAction extends AbstractCheckRequestAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface
+class CaptureAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
     use GenericTokenFactoryAwareTrait;
+    use CheckRequestTrait;
 
     public function __construct()
     {

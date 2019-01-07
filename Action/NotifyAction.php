@@ -18,10 +18,11 @@ use Villafinder\Payum2c2p\Api;
 /**
  * @property Api $api
  */
-class NotifyAction extends AbstractCheckRequestAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
+class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
+    use CheckRequestTrait;
 
     public function __construct()
     {

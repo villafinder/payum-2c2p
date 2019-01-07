@@ -7,10 +7,18 @@ use Payum\Core\Exception\LogicException;
 use Payum\Core\Request\GetHttpRequest;
 use Villafinder\Payum2c2p\Api;
 
-abstract class AbstractCheckRequestAction
+/**
+ * @property Api $api
+ */
+trait CheckRequestTrait
 {
     protected function updateModelFromRequest(ArrayObject $model, GetHttpRequest $httpRequest)
     {
+        // Model has already been updated (by Notify or Capture, first come first served), nothing more to do here
+        if (isset($model['payment_status'])) {
+            return;
+        }
+
         if ('POST' !== $httpRequest->method) {
             throw new LogicException('Request is invalid. Code 1');
         }
@@ -25,5 +33,10 @@ abstract class AbstractCheckRequestAction
         }
 
         $model->replace($httpRequest->request);
+    }
+
+    protected function isBackFrom2c2p(GetHttpRequest $httpRequest)
+    {
+        return isset($httpRequest->request['payment_status']);
     }
 }
