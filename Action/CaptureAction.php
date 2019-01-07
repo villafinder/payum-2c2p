@@ -50,12 +50,7 @@ class CaptureAction implements ActionInterface, ApiAwareInterface, GatewayAwareI
         $this->gateway->execute($httpRequest);
 
         // We are back from 2c2p
-        if (isset($httpRequest->request['payment_status'])) {
-            // Model has already been updated by Notify, nothing more to do here
-            if (isset($model['payment_status'])) {
-                return;
-            }
-
+        if ($this->isBackFrom2c2p($httpRequest)) {
             // Only if we trust user request, we can handle the request
             if ($this->api->trustUserRequest()) {
                 $this->updateModelFromRequest($model, $httpRequest);
@@ -64,6 +59,11 @@ class CaptureAction implements ActionInterface, ApiAwareInterface, GatewayAwareI
             return;
         }
 
+        $this->doExecute($request, $httpRequest, $model);
+    }
+
+    protected function doExecute(Capture $request, GetHttpRequest $httpRequest, \ArrayAccess $model)
+    {
         // User will come back to this URL
         if (empty($model['result_url_1']) && $request->getToken()) {
             $model['result_url_1'] = $request->getToken()->getTargetUrl();

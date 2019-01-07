@@ -12,6 +12,7 @@ use Payum\ISO4217\ISO4217;
 class Api
 {
     const VERSION = '6.9';
+    const VERSION_ONSITE = '9.3';
 
     /**
      * @var HttpClientInterface
@@ -97,6 +98,17 @@ class Api
     }
 
     /**
+     * @return string
+     */
+    public function getOnsiteUrl()
+    {
+        return $this->options['sandbox'] ?
+            'https://demo2.2c2p.com/2C2PFrontEnd/SecurePayment/PaymentAuth.aspx' :
+            'https://t.2c2p.com/SecurePayment/PaymentAuth.aspx'
+        ;
+    }
+
+    /**
      * @param  array $params
      * @return array
      */
@@ -148,6 +160,38 @@ class Api
     }
 
     /**
+     * @return array
+     */
+    public function prepareOnsitePayment(array $model, array $creditCard)
+    {
+        $params = [
+            'version'               => self::VERSION_ONSITE,
+            'merchantID'            => $this->getMerchantIdForCurrency($model['currency']),
+            'uniqueTransactionCode' => substr(uniqid(time()), 0, 20),
+            'desc'                  => $model['payment_description'],
+            'amt'                   => $model['amount'],
+            'currencyCode'          => $model['currency'],
+            'panCountry'            => '',
+            'cardholderName'        => '',
+            'encCardData'           => $creditCard['encryptedCardInfo'],
+        ];
+
+        $hash = $this->calculateHash(implode('', $params), $model['currency']);
+
+        $params['secureHash'] = $hash;
+
+        $xml = '<PaymentRequest>';
+        array_walk($params, function ($value, $key) use (&$xml) {
+            $xml .= '<'.$key.'>'.$value.'</'.$key.'>';
+        });
+        $xml .= '</PaymentRequest>';
+
+        return [
+            'paymentRequest' => base64_encode($xml),
+        ];
+    }
+
+    /**
      * @param  array  $params
      * @param  string $currency Some responses from 2C2P do not include currency, we are then using the one from model
      * @return bool
@@ -189,6 +233,28 @@ class Api
         ;
 
         return $params['hash_value'] === $this->calculateHash($toHash, $params['currency'] ?: $currency);
+    }
+
+    /**
+     * @param array $response
+     * @return array
+     * @throws \Exception
+     */
+    public function decryptResponse($response)
+    {
+        $xml = (new Pkcs7())->decrypt(
+            $response,
+            $this->options['public_key'],
+            $this->options['private_key'],
+            $this->options['passphrase']
+        );
+
+        return array_filter(
+            (array) simplexml_load_string($xml),
+            function ($value) {
+                return is_string($value);
+            }
+        );
     }
 
     /**
