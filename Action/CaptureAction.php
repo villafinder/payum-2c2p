@@ -22,11 +22,12 @@ use Villafinder\Payum2c2p\Api;
 /**
  * @property Api $api
  */
-class CaptureAction extends AbstractCheckRequestAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface
+class CaptureAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
     use GenericTokenFactoryAwareTrait;
+    use CheckRequestTrait;
 
     public function __construct()
     {
@@ -49,12 +50,7 @@ class CaptureAction extends AbstractCheckRequestAction implements ActionInterfac
         $this->gateway->execute($httpRequest);
 
         // We are back from 2c2p
-        if (isset($httpRequest->request['payment_status'])) {
-            // Model has already been updated by Notify, nothing more to do here
-            if (isset($model['payment_status'])) {
-                return;
-            }
-
+        if ($this->isBackFrom2c2p($httpRequest)) {
             // Only if we trust user request, we can handle the request
             if ($this->api->trustUserRequest()) {
                 $this->updateModelFromRequest($model, $httpRequest);
@@ -63,6 +59,11 @@ class CaptureAction extends AbstractCheckRequestAction implements ActionInterfac
             return;
         }
 
+        $this->doExecute($request, $httpRequest, $model);
+    }
+
+    protected function doExecute(Capture $request, GetHttpRequest $httpRequest, \ArrayAccess $model)
+    {
         // User will come back to this URL
         if (empty($model['result_url_1']) && $request->getToken()) {
             $model['result_url_1'] = $request->getToken()->getTargetUrl();

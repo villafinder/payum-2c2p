@@ -18,11 +18,11 @@ use Villafinder\Payum2c2p\Api;
 /**
  * @property Api $api
  */
-class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
+class NotifyOnsiteAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
-    use CheckRequestTrait;
+    use CheckRequestOnsiteTrait;
 
     public function __construct()
     {
@@ -39,7 +39,7 @@ class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareIn
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
         // If model has already been updated by Capture, nothing more to do here
-        if (!isset($model['payment_status'])) {
+        if (!isset($model['status'])) {
             $httpRequest = new GetHttpRequest();
             $this->gateway->execute($httpRequest);
 

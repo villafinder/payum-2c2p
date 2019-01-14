@@ -7,13 +7,12 @@ use Payum\Core\Request\GetStatusInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
 
-class StatusAction implements ActionInterface
+class StatusOnsiteAction implements ActionInterface
 {
-    const STATUS_SUCCESS  = '000';
-    const STATUS_PENDING  = '001';
-    const STATUS_REJECTED = '002';
-    const STATUS_CANCEL   = '003';
-    const STATUS_ERROR    = '999';
+    const STATUS_APPROVED = ['A', 'S'];
+    const STATUS_FAILED   = ['PF', 'AR', 'CBR', 'FF', 'ROE', 'IP', 'F', 'RR'];
+    const STATUS_REFUNDED = ['RF'];
+    const STATUS_VOIDED   = ['V'];
 
     /**
      * @param GetStatusInterface $request
@@ -24,16 +23,16 @@ class StatusAction implements ActionInterface
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
-        if (!isset($model['payment_status'])) {
+        if (!isset($model['status'])) {
             $request->markNew();
-        } elseif (self::STATUS_SUCCESS === $model['payment_status']) {
+        } elseif (in_array($model['status'], self::STATUS_APPROVED)) {
             $request->markCaptured();
-        } elseif (self::STATUS_PENDING === $model['payment_status']) {
-            $request->markPending();
-        } elseif (self::STATUS_CANCEL === $model['payment_status']) {
-            $request->markCanceled();
-        } elseif (self::STATUS_REJECTED === $model['payment_status']) {
+        } elseif (in_array($model['status'], self::STATUS_FAILED)) {
             $request->markFailed();
+        } elseif (in_array($model['status'], self::STATUS_REFUNDED)) {
+            $request->markRefunded();
+        } elseif (in_array($model['status'], self::STATUS_VOIDED)) {
+            $request->markCanceled();
         } else {
             $request->markUnknown();
         }
