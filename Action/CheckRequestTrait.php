@@ -23,7 +23,7 @@ trait CheckRequestTrait
             throw new LogicException('Request is invalid. Code 1');
         }
 
-        if (!$this->api->checkResponseHash($httpRequest->request, $model['currency'])) {
+        if (!$this->api->checkOffsiteResponseHash($httpRequest->request, $model['currency'])) {
             throw new LogicException('Request is invalid. Code 2');
         }
 
