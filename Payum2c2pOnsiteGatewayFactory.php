@@ -33,7 +33,6 @@ class Payum2c2pOnsiteGatewayFactory extends GatewayFactory
                 'sandbox' => true,
             );
             $config->defaults($config['payum.default_options']);
-            $config['payum.required_options'] = ['public_key', 'private_key', 'passphrase'];
 
             $config['payum.api'] = function (ArrayObject $config) {
                 $config->validateNotEmpty($config['payum.required_options']);
