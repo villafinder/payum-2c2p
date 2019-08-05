@@ -12,7 +12,10 @@ use Payum\ISO4217\ISO4217;
 class Api
 {
     const VERSION = '6.9';
-    const VERSION_ONSITE = '9.3';
+    const VERSION_ONSITE = '9.9';
+
+    const HASH_OFFSITE = 'sha1';
+    const HASH_ONSITE  = 'sha256';
 
     /**
      * @var HttpClientInterface
@@ -165,29 +168,26 @@ class Api
     public function prepareOnsitePayment(array $model, array $creditCard)
     {
         $params = [
-            'version'               => self::VERSION_ONSITE,
             'merchantID'            => $this->getMerchantIdForCurrency($model['currency']),
             'uniqueTransactionCode' => substr(uniqid(time()), 0, 20),
             'desc'                  => $model['payment_description'],
             'amt'                   => $model['amount'],
             'currencyCode'          => $model['currency'],
             'panCountry'            => '',
-            'cardholderName'        => '',
+            'cardholderName'        => isset($creditCard['credit_card']['holder']) ? $creditCard['credit_card']['holder'] : '',
             'encCardData'           => $creditCard['encryptedCardInfo'],
         ];
 
-        $hash = $this->calculateHash(implode('', $params), $model['currency']);
+        $paymentPayload = base64_encode($this->makeXml($params, 'PaymentRequest'));
 
-        $params['secureHash'] = $hash;
-
-        $xml = '<PaymentRequest>';
-        array_walk($params, function ($value, $key) use (&$xml) {
-            $xml .= '<'.$key.'>'.$value.'</'.$key.'>';
-        });
-        $xml .= '</PaymentRequest>';
+        $finalPayload = [
+            'version'   => self::VERSION_ONSITE,
+            'payload'   => $paymentPayload,
+            'signature' => $this->calculateHash($paymentPayload, $model['currency'], self::HASH_ONSITE),
+        ];
 
         return [
-            'paymentRequest' => base64_encode($xml),
+            'paymentRequest' => base64_encode($this->makeXml($finalPayload, 'PaymentRequest')),
         ];
     }
 
@@ -196,7 +196,7 @@ class Api
      * @param  string $currency Some responses from 2C2P do not include currency, we are then using the one from model
      * @return bool
      */
-    public function checkResponseHash(array $params, $currency)
+    public function checkOffsiteResponseHash(array $params, $currency)
     {
         $toHash =
             $params['version'].
@@ -236,21 +236,30 @@ class Api
     }
 
     /**
-     * @param array $response
+     * @param string $response
      * @return array
      * @throws \Exception
      */
-    public function decryptResponse($response)
+    public function readOnsiteResponse($response)
     {
-        $xml = (new Pkcs7())->decrypt(
-            $response,
-            $this->options['public_key'],
-            $this->options['private_key'],
-            $this->options['passphrase']
-        );
+        $xmlObject = simplexml_load_string(base64_decode($response));
+        if (!$xmlObject) {
+            throw new \Exception('Cannot read XML from response');
+        }
+
+        $payloadXmlObject = simplexml_load_string(base64_decode($xmlObject->payload));
+        if (!$payloadXmlObject) {
+            throw new \Exception('Cannot read payload XML from response');
+        }
+
+        $signatureHash = $this->calculateHash($xmlObject->payload, $payloadXmlObject->currencyCode, self::HASH_ONSITE);
+
+        if((string) $xmlObject->signature !== $signatureHash) {
+            throw new \Exception('Signature does not match.');
+        }
 
         return array_filter(
-            (array) simplexml_load_string($xml),
+            (array) $payloadXmlObject,
             function ($value) {
                 return is_string($value);
             }
@@ -264,7 +273,7 @@ class Api
     {
         $params['version']     = self::VERSION;
         $params['merchant_id'] = $this->getMerchantIdForCurrency($params['currency']);
-        $params['hash_value']  = $this->calculateRequestHash($params);
+        $params['hash_value']  = $this->calculateOffsiteRequestHash($params);
     }
 
     /**
@@ -303,7 +312,7 @@ class Api
      * @param  array $params
      * @return string
      */
-    protected function calculateRequestHash(array $params)
+    protected function calculateOffsiteRequestHash(array $params)
     {
         $toHash =
             $params['version'].
@@ -333,9 +342,9 @@ class Api
      * @param  string $currencyNumeric
      * @return string
      */
-    private function calculateHash($toHash, $currencyNumeric)
+    private function calculateHash($toHash, $currencyNumeric, $algo = self::HASH_OFFSITE)
     {
-        return strtoupper(hash_hmac('sha1', $toHash, $this->getMerchantAuthKeyForCurrency($currencyNumeric), false));
+        return strtoupper(hash_hmac($algo, $toHash, $this->getMerchantAuthKeyForCurrency($currencyNumeric), false));
     }
 
     private function emptyOr(string $index, array $array)
@@ -345,5 +354,16 @@ class Api
         }
 
         return $array[$index];
+    }
+
+    private function makeXml(array $params, $rootNode)
+    {
+        $xml = sprintf('<%s>', $rootNode);
+        array_walk($params, function ($value, $key) use (&$xml) {
+            $xml .= '<'.$key.'>'.$value.'</'.$key.'>';
+        });
+        $xml .= sprintf('</%s>', $rootNode);
+
+        return $xml;
     }
 }

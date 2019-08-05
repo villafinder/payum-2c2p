@@ -29,7 +29,7 @@ trait CheckRequestOnsiteTrait
 
 
         try {
-            $response = $this->api->decryptResponse($httpRequest->request['paymentResponse']);
+            $response = $this->api->readOnsiteResponse($httpRequest->request['paymentResponse']);
         } catch( \Exception $e) {
             throw new \LogicException('Onsite request is invalid. Code 3', $e->getCode(), $e);
         }
