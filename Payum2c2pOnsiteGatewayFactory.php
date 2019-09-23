@@ -2,11 +2,13 @@
 
 namespace Villafinder\Payum2c2p;
 
+use Villafinder\Payum2c2p\Action\CaptureOnsiteNullAction;
 use Villafinder\Payum2c2p\Action\CaptureOnsiteUnsafeAction;
 use Villafinder\Payum2c2p\Action\ConvertPaymentAction;
 use Villafinder\Payum2c2p\Action\CaptureOnsiteAction;
 use Villafinder\Payum2c2p\Action\NotifyAction;
 use Villafinder\Payum2c2p\Action\NotifyOnsiteAction;
+use Villafinder\Payum2c2p\Action\NotifyOnsiteNullAction;
 use Villafinder\Payum2c2p\Action\StatusAction;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayFactory;
@@ -23,7 +25,9 @@ class Payum2c2pOnsiteGatewayFactory extends GatewayFactory
             'payum.factory_name'           => '2c2p_onsite',
             'payum.factory_title'          => '2C2P On-Site',
             'payum.action.capture'         => new CaptureOnsiteAction(),
+            'payum.action.capture_null'    => new CaptureOnsiteNullAction(),
             'payum.action.notify'          => new NotifyOnsiteAction(),
+            'payum.action.notify_null'     => new NotifyOnsiteNullAction(),
             'payum.action.status'          => new StatusOnsiteAction(),
             'payum.action.convert_payment' => new ConvertPaymentAction(),
         ]);

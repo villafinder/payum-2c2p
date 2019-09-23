@@ -165,7 +165,7 @@ class Api
     /**
      * @return array
      */
-    public function prepareOnsitePayment(array $model, array $creditCard)
+    public function prepareOnsitePayment(array $model, array $creditCard, array $userDefined = [])
     {
         $params = [
             'merchantID'            => $this->getMerchantIdForCurrency($model['currency']),
@@ -177,6 +177,14 @@ class Api
             'cardholderName'        => isset($creditCard['credit_card']['holder']) ? $creditCard['credit_card']['holder'] : '',
             'encCardData'           => $creditCard['encryptedCardInfo'],
         ];
+
+        $userDefined = array_filter($userDefined, function ($value, $key) {
+            return in_array($key, range(1, 5));
+        }, ARRAY_FILTER_USE_BOTH);
+
+        array_walk($userDefined, function ($value, $key) use (&$params) {
+            $params[sprintf('userDefined%d', $key)] = $value;
+        });
 
         $paymentPayload = base64_encode($this->makeXml($params, 'PaymentRequest'));
 

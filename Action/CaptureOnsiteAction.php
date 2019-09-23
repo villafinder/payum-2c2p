@@ -17,13 +17,19 @@ class CaptureOnsiteAction extends CaptureAction
 {
     use CheckRequestOnsiteTrait;
 
+    const USER_DEFINED_TOKEN = 1;
+    const USER_DEFINED_URL   = 2;
+
     protected function doExecute(Capture $request, GetHttpRequest $httpRequest, \ArrayAccess $model)
     {
         if ('POST' === $httpRequest->method) {
             // We POST redirect to 2c2p
             throw new HttpPostRedirect(
                 $this->api->getOnsiteUrl(),
-                $this->api->prepareOnsitePayment($model->toUnsafeArray(), $httpRequest->request)
+                $this->api->prepareOnsitePayment($model->toUnsafeArray(), $httpRequest->request, [
+                    self::USER_DEFINED_TOKEN => $request->getToken()->getHash(),
+                    self::USER_DEFINED_URL   => $request->getToken()->getTargetUrl(),
+                ])
             );
         }
 
